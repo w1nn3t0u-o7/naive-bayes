@@ -1,6 +1,6 @@
 import pytest
 
-from naive_bayes.skeleton import fib, main
+from naive_bayes.naive_bayes import fib, main
 
 __author__ = "w1nn3t0u"
 __copyright__ = "w1nn3t0u"
