@@ -306,26 +306,238 @@ class BernoulliNaiveBayes:
         
         return np.array(predictions)
 
+class CategoricalNaiveBayes:
+    """
+    Categorical Naive Bayes classifier for categorical features.
+    
+    Suitable for features that are categorically distributed (discrete values).
+    Each feature is assumed to be from a different categorical distribution.
+    Categories should be encoded as integers 0, 1, 2, ... n-1
+    """
+    
+    def __init__(self, alpha=1.0):
+        """
+        Initialize Categorical Naive Bayes.
+        
+        Args:
+            alpha (float): Additive (Laplace) smoothing parameter
+        """
+        self.alpha = alpha
+        self.classes_ = None
+        self.class_log_prior_ = None
+        self.category_count_ = None
+        self.n_categories_ = None
+        
+    def fit(self, X, y):
+        """
+        Fit Categorical Naive Bayes classifier.
+        
+        Args:
+            X (np.ndarray): Training vectors, shape (n_samples, n_features)
+                           Each feature contains categorical values (0, 1, 2, ...)
+            y (np.ndarray): Target values, shape (n_samples,)
+            
+        Returns:
+            self
+        """
+        _logger.info("Training Categorical Naive Bayes classifier...")
+        
+        X = np.array(X)
+        y = np.array(y)
+        
+        self.classes_ = np.unique(y)
+        n_classes = len(self.classes_)
+        n_features = X.shape[1]
+        
+        # Determine number of categories per feature
+        self.n_categories_ = np.max(X, axis=0) + 1
+        
+        # Initialize class priors
+        self.class_log_prior_ = np.zeros(n_classes)
+        
+        # Initialize category counts for each class and feature
+        # Shape: (n_classes, n_features, max_categories)
+        max_categories = int(np.max(self.n_categories_))
+        self.category_count_ = []
+        
+        for idx, c in enumerate(self.classes_):
+            X_c = X[y == c]
+            n_samples_c = X_c.shape[0]
+            
+            # Class prior
+            self.class_log_prior_[idx] = np.log(n_samples_c / X.shape[0])
+            
+            # Count categories for each feature
+            feature_counts = []
+            for feature_idx in range(n_features):
+                n_cats = int(self.n_categories_[feature_idx])
+                counts = np.zeros(n_cats)
+                
+                for cat in range(n_cats):
+                    counts[cat] = np.sum(X_c[:, feature_idx] == cat)
+                
+                # Apply Laplace smoothing and convert to log probabilities
+                counts = (counts + self.alpha) / (n_samples_c + self.alpha * n_cats)
+                feature_counts.append(np.log(counts))
+            
+            self.category_count_.append(feature_counts)
+        
+        _logger.info(f"Training complete. Classes: {self.classes_}")
+        return self
+        
+    def predict(self, X):
+        """
+        Perform classification on test vectors X.
+        
+        Args:
+            X (np.ndarray): Test vectors, shape (n_samples, n_features)
+            
+        Returns:
+            np.ndarray: Predicted target values
+        """
+        _logger.info(f"Making predictions on {X.shape[0]} samples...")
+        X = np.array(X)
+        
+        predictions = []
+        for x in X:
+            log_probs = []
+            
+            for class_idx in range(len(self.classes_)):
+                # Start with class prior
+                log_prob = self.class_log_prior_[class_idx]
+                
+                # Add log probabilities for each feature
+                for feature_idx, feature_value in enumerate(x):
+                    feature_value = int(feature_value)
+                    log_prob += self.category_count_[class_idx][feature_idx][feature_value]
+                
+                log_probs.append(log_prob)
+            
+            predictions.append(self.classes_[np.argmax(log_probs)])
+        
+        return np.array(predictions)
+
+
+class ComplementNaiveBayes:
+    """
+    Complement Naive Bayes classifier.
+    
+    Particularly suited for imbalanced datasets. Uses statistics from
+    the complement of each class to compute weights.
+    Similar to Multinomial NB but more stable for imbalanced data.
+    """
+    
+    def __init__(self, alpha=1.0, norm=False):
+        """
+        Initialize Complement Naive Bayes.
+        
+        Args:
+            alpha (float): Additive (Laplace) smoothing parameter
+            norm (bool): Whether to perform a second normalization
+        """
+        self.alpha = alpha
+        self.norm = norm
+        self.classes_ = None
+        self.class_log_prior_ = None
+        self.feature_log_prob_ = None
+        
+    def fit(self, X, y):
+        """
+        Fit Complement Naive Bayes classifier.
+        
+        Args:
+            X (np.ndarray): Training vectors, shape (n_samples, n_features)
+                           Contains count data (non-negative)
+            y (np.ndarray): Target values, shape (n_samples,)
+            
+        Returns:
+            self
+        """
+        _logger.info("Training Complement Naive Bayes classifier...")
+        
+        X = np.array(X)
+        y = np.array(y)
+        
+        self.classes_ = np.unique(y)
+        n_classes = len(self.classes_)
+        n_features = X.shape[1]
+        
+        # Initialize
+        self.class_log_prior_ = np.zeros(n_classes)
+        self.feature_log_prob_ = np.zeros((n_classes, n_features))
+        
+        # Calculate complement statistics for each class
+        for idx, c in enumerate(self.classes_):
+            # Class prior
+            n_samples_c = np.sum(y == c)
+            self.class_log_prior_[idx] = np.log(n_samples_c / X.shape[0])
+            
+            # Complement: all samples NOT in class c
+            X_complement = X[y != c]
+            
+            # Count features in complement with smoothing
+            complement_count = X_complement.sum(axis=0) + self.alpha
+            total_count = complement_count.sum()
+            
+            # Compute log probabilities (inverse because it's complement)
+            self.feature_log_prob_[idx, :] = np.log(complement_count / total_count)
+            
+            # Optional normalization
+            if self.norm:
+                norm_factor = np.sum(self.feature_log_prob_[idx, :])
+                self.feature_log_prob_[idx, :] /= norm_factor
+        
+        # Complement NB uses negative weights
+        self.feature_log_prob_ = -self.feature_log_prob_
+        
+        _logger.info(f"Training complete. Classes: {self.classes_}")
+        return self
+        
+    def predict(self, X):
+        """
+        Perform classification on test vectors X.
+        
+        Args:
+            X (np.ndarray): Test vectors, shape (n_samples, n_features)
+            
+        Returns:
+            np.ndarray: Predicted target values
+        """
+        _logger.info(f"Making predictions on {X.shape[0]} samples...")
+        X = np.array(X)
+        
+        # Compute log probabilities for all classes
+        log_prob = X @ self.feature_log_prob_.T + self.class_log_prior_
+        
+        return self.classes_[np.argmax(log_prob, axis=1)]
+
 
 def train_and_evaluate(dataset_name='iris', classifier_type='gaussian', test_size=0.3, random_state=42):
     """
     Train and evaluate Naive Bayes classifier.
     
     Args:
-        dataset_name (str): 'iris', 'wine', 'breast_cancer', or 'digits'
-        classifier_type (str): 'gaussian', 'multinomial', or 'bernoulli'
+        dataset_name (str): 'iris', 'wine', 'breast_cancer', 'digits'
+        classifier_type (str): 'gaussian', 'multinomial', 'bernoulli', 'categorical', 'complement'
         test_size (float): Proportion for testing
         random_state (int): Random seed
         
     Returns:
         tuple: (model, accuracy, predictions, y_test)
     """
+    _logger.info(f"Loading {dataset_name} dataset...")
+    
     # Load dataset
     if dataset_name == 'iris':
         data = datasets.load_iris()
+    elif dataset_name == 'wine':
+        data = datasets.load_wine()
+    elif dataset_name == 'breast_cancer':
+        data = datasets.load_breast_cancer()
     elif dataset_name == 'digits':
         data = datasets.load_digits()
-    # ... etc
+    else:
+        raise ValueError(f"Unknown dataset: {dataset_name}")
     
     X_train, X_test, y_train, y_test = train_test_split(
         data.data, data.target, test_size=test_size, random_state=random_state
@@ -335,18 +547,37 @@ def train_and_evaluate(dataset_name='iris', classifier_type='gaussian', test_siz
     if classifier_type == 'gaussian':
         model = GaussianNaiveBayes()
     elif classifier_type == 'multinomial':
+        # Ensure data is non-negative for multinomial
+        if X_train.min() < 0:
+            X_train = X_train - X_train.min()
+            X_test = X_test - X_test.min()
         model = MultinomialNaiveBayes(alpha=1.0)
     elif classifier_type == 'bernoulli':
         model = BernoulliNaiveBayes(alpha=1.0, binarize=0.0)
+    elif classifier_type == 'categorical':
+        # Convert to categorical (discretize continuous features)
+        from sklearn.preprocessing import KBinsDiscretizer
+        discretizer = KBinsDiscretizer(n_bins=5, encode='ordinal', strategy='uniform')
+        X_train = discretizer.fit_transform(X_train)
+        X_test = discretizer.transform(X_test)
+        model = CategoricalNaiveBayes(alpha=1.0)
+    elif classifier_type == 'complement':
+        # Ensure data is non-negative
+        if X_train.min() < 0:
+            X_train = X_train - X_train.min()
+            X_test = X_test - X_test.min()
+        model = ComplementNaiveBayes(alpha=1.0)
     else:
         raise ValueError(f"Unknown classifier type: {classifier_type}")
     
     # Train and evaluate
+    _logger.info(f"Training {classifier_type} Naive Bayes...")
     model.fit(X_train, y_train)
     predictions = model.predict(X_test)
     accuracy = accuracy_score(y_test, predictions)
     
     return model, accuracy, predictions, y_test
+
 
 
 
@@ -373,10 +604,19 @@ def parse_args(args):
     parser.add_argument(
         "--dataset",
         dest="dataset",
-        help="Dataset to use (iris, wine, breast_cancer)",
+        help="Dataset to use (iris, wine, breast_cancer, digits)",
         type=str,
         default="iris",
         metavar="STR"
+    )
+    parser.add_argument(
+    "--classifier",
+    dest="classifier",
+    help="Classifier type",
+    type=str,
+    default="gaussian",
+    metavar="STR",
+    choices=["gaussian", "multinomial", "bernoulli", "categorical", "complement"]
     )
     parser.add_argument(
         "-v",
@@ -395,6 +635,7 @@ def parse_args(args):
         const=logging.DEBUG,
     )
     return parser.parse_args(args)
+
 
 
 def setup_logging(loglevel):
@@ -421,16 +662,20 @@ def main(args):
     setup_logging(args.loglevel)
     
     _logger.debug("Starting Naive Bayes training...")
-    model, accuracy, predictions, y_test = train_and_evaluate(dataset_name=args.dataset)
+    model, accuracy, predictions, y_test = train_and_evaluate(
+        dataset_name=args.dataset,
+        classifier_type=args.classifier  # Add this parameter
+    )
     
     print(f"\n{'='*60}")
-    print(f"Naive Bayes Results ({args.dataset} dataset)")
+    print(f"Naive Bayes Results ({args.dataset} dataset, {args.classifier} classifier)")
     print(f"{'='*60}")
     print(f"Accuracy: {accuracy:.4f}")
-    print(f"Predictions: {predictions[:10]}...")  # Show first 10
+    print(f"Predictions: {predictions[:10]}...")
     print(f"{'='*60}\n")
     
     _logger.info("Training complete")
+
 
 
 def run():
