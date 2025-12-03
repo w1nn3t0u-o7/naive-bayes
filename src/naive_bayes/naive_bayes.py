@@ -1,28 +1,13 @@
 """
 Gaussian Naive Bayes classifier implementation.
 
-To run this script from command line after pip install:
-    python -m naive_bayes.skeleton --dataset iris -v
+Includes Gaussian, Multinomial, Bernoulli, Categorical, and Complement Naive Bayes variants.
 """
 
-import argparse
 import logging
-import sys
 import numpy as np
-from sklearn import datasets
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-
-from naive_bayes import __version__
-
-__author__ = "w1nn3t0u"
-__copyright__ = "w1nn3t0u"
-__license__ = "MIT"
 
 _logger = logging.getLogger(__name__)
-
-
-# ---- Python API ----
 
 class GaussianNaiveBayes:
     """
@@ -93,11 +78,11 @@ class GaussianNaiveBayes:
         
         # Add small epsilon to avoid division by zero
         epsilon = 1e-9
-        numerator = np.exp(-((x - mean) ** 2) / (2 * (var + epsilon)))
-        denominator = np.sqrt(2 * np.pi * (var + epsilon))
+        var_safe = var + epsilon
+    
+        log_likelihood = -0.5 * np.log(2 * np.pi * var_safe) - 0.5 * ((x - mean) ** 2) / var_safe
         
-        # Use log likelihood for numerical stability
-        return np.sum(np.log(numerator / denominator))
+        return np.sum(log_likelihood)
         
     def predict(self, X):
         """
@@ -510,183 +495,4 @@ class ComplementNaiveBayes:
         log_prob = X @ self.feature_log_prob_.T + self.class_log_prior_
         
         return self.classes_[np.argmax(log_prob, axis=1)]
-
-
-def train_and_evaluate(dataset_name='iris', classifier_type='gaussian', test_size=0.3, random_state=42):
-    """
-    Train and evaluate Naive Bayes classifier.
-    
-    Args:
-        dataset_name (str): 'iris', 'wine', 'breast_cancer', 'digits'
-        classifier_type (str): 'gaussian', 'multinomial', 'bernoulli', 'categorical', 'complement'
-        test_size (float): Proportion for testing
-        random_state (int): Random seed
-        
-    Returns:
-        tuple: (model, accuracy, predictions, y_test)
-    """
-    _logger.info(f"Loading {dataset_name} dataset...")
-    
-    # Load dataset
-    if dataset_name == 'iris':
-        data = datasets.load_iris()
-    elif dataset_name == 'wine':
-        data = datasets.load_wine()
-    elif dataset_name == 'breast_cancer':
-        data = datasets.load_breast_cancer()
-    elif dataset_name == 'digits':
-        data = datasets.load_digits()
-    else:
-        raise ValueError(f"Unknown dataset: {dataset_name}")
-    
-    X_train, X_test, y_train, y_test = train_test_split(
-        data.data, data.target, test_size=test_size, random_state=random_state
-    )
-    
-    # Choose classifier
-    if classifier_type == 'gaussian':
-        model = GaussianNaiveBayes()
-    elif classifier_type == 'multinomial':
-        # Ensure data is non-negative for multinomial
-        if X_train.min() < 0:
-            X_train = X_train - X_train.min()
-            X_test = X_test - X_test.min()
-        model = MultinomialNaiveBayes(alpha=1.0)
-    elif classifier_type == 'bernoulli':
-        model = BernoulliNaiveBayes(alpha=1.0, binarize=0.0)
-    elif classifier_type == 'categorical':
-        # Convert to categorical (discretize continuous features)
-        from sklearn.preprocessing import KBinsDiscretizer
-        discretizer = KBinsDiscretizer(n_bins=5, encode='ordinal', strategy='uniform')
-        X_train = discretizer.fit_transform(X_train)
-        X_test = discretizer.transform(X_test)
-        model = CategoricalNaiveBayes(alpha=1.0)
-    elif classifier_type == 'complement':
-        # Ensure data is non-negative
-        if X_train.min() < 0:
-            X_train = X_train - X_train.min()
-            X_test = X_test - X_test.min()
-        model = ComplementNaiveBayes(alpha=1.0)
-    else:
-        raise ValueError(f"Unknown classifier type: {classifier_type}")
-    
-    # Train and evaluate
-    _logger.info(f"Training {classifier_type} Naive Bayes...")
-    model.fit(X_train, y_train)
-    predictions = model.predict(X_test)
-    accuracy = accuracy_score(y_test, predictions)
-    
-    return model, accuracy, predictions, y_test
-
-
-
-
-# ---- CLI ----
-
-def parse_args(args):
-    """
-    Parse command line parameters.
-    
-    Args:
-        args (List[str]): command line parameters as list of strings
-        
-    Returns:
-        :obj:`argparse.Namespace`: command line parameters namespace
-    """
-    parser = argparse.ArgumentParser(
-        description="Gaussian Naive Bayes classifier"
-    )
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=f"naive-bayes {__version__}",
-    )
-    parser.add_argument(
-        "--dataset",
-        dest="dataset",
-        help="Dataset to use (iris, wine, breast_cancer, digits)",
-        type=str,
-        default="iris",
-        metavar="STR"
-    )
-    parser.add_argument(
-    "--classifier",
-    dest="classifier",
-    help="Classifier type",
-    type=str,
-    default="gaussian",
-    metavar="STR",
-    choices=["gaussian", "multinomial", "bernoulli", "categorical", "complement"]
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        dest="loglevel",
-        help="set loglevel to INFO",
-        action="store_const",
-        const=logging.INFO,
-    )
-    parser.add_argument(
-        "-vv",
-        "--very-verbose",
-        dest="loglevel",
-        help="set loglevel to DEBUG",
-        action="store_const",
-        const=logging.DEBUG,
-    )
-    return parser.parse_args(args)
-
-
-
-def setup_logging(loglevel):
-    """
-    Setup basic logging.
-    
-    Args:
-        loglevel (int): minimum loglevel for emitting messages
-    """
-    logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
-    logging.basicConfig(
-        level=loglevel, stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
-    )
-
-
-def main(args):
-    """
-    Main entry point for CLI demonstration.
-    
-    Args:
-        args (List[str]): command line parameters as list of strings
-    """
-    args = parse_args(args)
-    setup_logging(args.loglevel)
-    
-    _logger.debug("Starting Naive Bayes training...")
-    model, accuracy, predictions, y_test = train_and_evaluate(
-        dataset_name=args.dataset,
-        classifier_type=args.classifier  # Add this parameter
-    )
-    
-    print(f"\n{'='*60}")
-    print(f"Naive Bayes Results ({args.dataset} dataset, {args.classifier} classifier)")
-    print(f"{'='*60}")
-    print(f"Accuracy: {accuracy:.4f}")
-    print(f"Predictions: {predictions[:10]}...")
-    print(f"{'='*60}\n")
-    
-    _logger.info("Training complete")
-
-
-
-def run():
-    """
-    Calls :func:`main` passing the CLI arguments extracted from :obj:`sys.argv`.
-    
-    This function can be used as entry point to create console scripts with setuptools.
-    """
-    main(sys.argv[1:])
-
-
-if __name__ == "__main__":
-    run()
 
