@@ -21,7 +21,7 @@ from sklearn.naive_bayes import (
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import KBinsDiscretizer
 
-from naive_bayes.naive_bayes import (
+from naive_bayes import (
     GaussianNaiveBayes,
     MultinomialNaiveBayes,
     BernoulliNaiveBayes,

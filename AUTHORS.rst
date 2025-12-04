@@ -2,4 +2,5 @@
 Contributors
 ============
 
-* w1nn3t0u <mik.ziel7890@gmail.com>
+* w1nn3t0u <mzielniok@student.agh.edu.pl>
+* jmarchew <jmarchew@student.agh.edu.pl>
