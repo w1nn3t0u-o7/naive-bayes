@@ -61,6 +61,7 @@ class MultinomialNaiveBayes:
                 (feature_count + self.alpha) / (total_count + self.alpha * n_features)
             )
         
+        _logger.info(f"Training complete. Classes: {self.classes_}")
         return self
         
     def predict(self, X):

@@ -73,6 +73,7 @@ class BernoulliNaiveBayes:
                 (n_samples_c - feature_count + self.alpha) / (n_samples_c + 2 * self.alpha)
             )
         
+        _logger.info(f"Training complete. Classes: {self.classes_}")
         return self
         
     def predict(self, X):
