@@ -1,11 +1,10 @@
 import sys
-from .naive_bayes import (
-    GaussianNaiveBayes,
-    MultinomialNaiveBayes,
-    BernoulliNaiveBayes,
-    CategoricalNaiveBayes,
-    ComplementNaiveBayes,
-)
+
+from .bernoulli import BernoulliNaiveBayes
+from .categorical import CategoricalNaiveBayes
+from .complement import ComplementNaiveBayes
+from .gaussian import GaussianNaiveBayes
+from .multinomial import MultinomialNaiveBayes
 
 if sys.version_info[:2] >= (3, 8):
     # TODO: Import directly (no need for conditional) when `python_requires = >= 3.8`
