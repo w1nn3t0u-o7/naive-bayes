@@ -35,7 +35,7 @@ Contents
    Authors <authors>
    Changelog <changelog>
    Module Reference <api/modules>
-   Test Suite <tests>
+   Test Suite <api/tests>
 
 
 Indices and tables
