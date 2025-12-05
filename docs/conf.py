@@ -36,8 +36,6 @@ except ImportError:
 
 output_dir = os.path.join(__location__, "api")
 module_dir = os.path.join(__location__, "../src/naive_bayes")
-tests_dir = os.path.join(__location__, "../tests")
-
 try:
     shutil.rmtree(output_dir)
 except FileNotFoundError:
@@ -46,14 +44,13 @@ except FileNotFoundError:
 try:
     import sphinx
 
-    # Note: pass both pkg_dir and tests_dir to sphinx-apidoc
-    cmd_line = (
-        f"sphinx-apidoc --implicit-namespaces -f -o {output_dir} "
-        f"{module_dir} {tests_dir}"
-    )
+    cmd_line = f"sphinx-apidoc --implicit-namespaces -f -o {output_dir} {module_dir}"
+
     args = cmd_line.split(" ")
     if tuple(sphinx.__version__.split(".")) >= ("1", "7"):
+        # This is a rudimentary parse_version to avoid external dependencies
         args = args[1:]
+
     apidoc.main(args)
 except Exception as e:
     print("Running `sphinx-apidoc` failed!\n{}".format(e))
