@@ -30,12 +30,13 @@ Contents
    :maxdepth: 2
 
    Overview <readme>
-   Contributions & Help <contributing>
-   License <license>
-   Authors <authors>
-   Changelog <changelog>
-   Module Reference <api/modules>
+   API Reference <api/modules>
    Test Suite <tests>
+   Contributions & Help <contributing>
+   Changelog <changelog>
+   Authors <authors>
+   License <license>
+   
 
 
 Indices and tables
