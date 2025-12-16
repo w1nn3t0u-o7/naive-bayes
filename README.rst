@@ -1,27 +1,6 @@
-.. These are examples of badges you might want to add to your README:
-   please update the URLs accordingly
-
-    .. image:: https://api.cirrus-ci.com/github/<USER>/naive-bayes.svg?branch=main
-        :alt: Built Status
-        :target: https://cirrus-ci.com/github/<USER>/naive-bayes
-    .. image:: https://readthedocs.org/projects/naive-bayes/badge/?version=latest
-        :alt: ReadTheDocs
-        :target: https://naive-bayes.readthedocs.io/en/stable/
-    .. image:: https://img.shields.io/coveralls/github/<USER>/naive-bayes/main.svg
-        :alt: Coveralls
-        :target: https://coveralls.io/r/<USER>/naive-bayes
-    .. image:: https://img.shields.io/pypi/v/naive-bayes.svg
-        :alt: PyPI-Server
-        :target: https://pypi.org/project/naive-bayes/
-    .. image:: https://img.shields.io/conda/vn/conda-forge/naive-bayes.svg
-        :alt: Conda-Forge
-        :target: https://anaconda.org/conda-forge/naive-bayes
-    .. image:: https://pepy.tech/badge/naive-bayes/month
-        :alt: Monthly Downloads
-        :target: https://pepy.tech/project/naive-bayes
-    .. image:: https://img.shields.io/twitter/url/http/shields.io.svg?style=social&label=Twitter
-        :alt: Twitter
-        :target: https://twitter.com/naive-bayes
+.. image:: https://readthedocs.org/projects/naive-bayes/badge/?version=latest
+    :alt: ReadTheDocs
+    :target: https://naive-bayes.readthedocs.io/en/latest/
 
 .. image:: https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold
     :alt: Project generated with PyScaffold
@@ -33,12 +12,32 @@
 naive-bayes
 ===========
 
+**Five Naive Bayes classifiers implemented from scratch in pure NumPy**
 
-    Add a short description here!
+This project provides educational implementations of Gaussian, Multinomial, Bernoulli, Categorical, and Complement Naive Bayes algorithms. Each classifier follows the scikit-learn API and has been validated against scikit-learn on multiple real-world datasets.
 
+Quick Start
+===========
 
-A longer description of your project goes here...
+.. code-block:: python
 
+    from naive_bayes import GaussianNaiveBayes
+    from sklearn.datasets import load_iris
+    from sklearn.model_selection import train_test_split
+
+    # Load data
+    X, y = load_iris(return_X_y=True)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+
+    # Train and predict
+    model = GaussianNaiveBayes()
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+
+Documentation
+=============
+
+Full documentation available at https://naive-bayes.readthedocs.io/
 
 .. _pyscaffold-notes:
 
@@ -47,3 +46,4 @@ Note
 
 This project has been set up using PyScaffold 4.6. For details and usage
 information on PyScaffold see https://pyscaffold.org/.
+
