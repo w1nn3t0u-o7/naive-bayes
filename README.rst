@@ -12,7 +12,7 @@
 naive-bayes
 ===========
 
-**Five Naive Bayes classifiers implemented from scratch in pure NumPy**
+**Five Naive Bayes classifiers**
 
 This project provides educational implementations of Gaussian, Multinomial, Bernoulli, Categorical, and Complement Naive Bayes algorithms. Each classifier follows the scikit-learn API and has been validated against scikit-learn on multiple real-world datasets.
 
